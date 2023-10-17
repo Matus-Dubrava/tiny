@@ -16,7 +16,7 @@ class TokenType(str, Enum):
     Eof = ""
     Semicolon = ";"
     Bang = "!"
-    Invalid = "INVALID"
+    Illegal = "ILLEGAL"
     TRUE = "TRUE"
     FALSE = "FALSE"
     LBrace = "{"
@@ -47,7 +47,7 @@ class Token:
         return self.token_type == other.token_type and self.literal == other.literal
 
 
-INVALID = Token(TokenType.Invalid)
+ILLEGAL = Token(TokenType.Illegal)
 
 keywords: Dict[str, Token] = {
     "let": Token(TokenType.Let),
@@ -126,8 +126,6 @@ class Lexer:
 
     def next_token(self) -> Token:
         self.eat_whitespace()
-
-        tok = Token(TokenType.Invalid)
 
         if self.ch == "+":
             tok = Token(TokenType.Plus)
