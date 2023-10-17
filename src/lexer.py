@@ -7,6 +7,9 @@ from typing import Dict, Optional
 class TokenType(str, Enum):
     Let = "LET"
     Plus = "+"
+    Minus = "-"
+    Asterisk = "*"
+    Slash = "/"
     Ident = "IDENT"
     Int = "INT"
     Assign = "="
@@ -14,6 +17,25 @@ class TokenType(str, Enum):
     Semicolon = ";"
     Bang = "!"
     Invalid = "INVALID"
+    TRUE = "TRUE"
+    FALSE = "FALSE"
+    LBrace = "{"
+    RBrace = "}"
+    LParen = "("
+    RParen = ")"
+    Comma = ","
+    EQ = "=="
+    NotEQ = "!="
+    LT = "<"
+    GT = ">"
+    Function = "FUNCTION"
+    If = "IF"
+    Else = "ELSE"
+    Return = "RETURN"
+    LBracket = "["
+    RBracket = "]"
+    String = "STRING"
+    Colon = ":"
 
 
 @dataclass
@@ -21,13 +43,20 @@ class Token:
     token_type: TokenType
     literal: Optional[str] = None
 
+    def __eq__(self, other: "Token") -> bool:
+        return self.token_type == other.token_type and self.literal == other.literal
+
 
 INVALID = Token(TokenType.Invalid)
 
 keywords: Dict[str, Token] = {
-    "let": Token(
-        TokenType.Let,
-    )
+    "let": Token(TokenType.Let),
+    "true": Token(TokenType.TRUE),
+    "false": Token(TokenType.FALSE),
+    "fn": Token(TokenType.Function),
+    "if": Token(TokenType.If),
+    "else": Token(TokenType.Else),
+    "return": Token(TokenType.Return),
 }
 
 
@@ -62,11 +91,19 @@ class Lexer:
         position = self.position
         while self.ch.isnumeric():
             self.read_char()
-        return Token(TokenType.Int, int(self.input[position : self.position]))
+        return Token(TokenType.Int, self.input[position : self.position])
+
+    def read_two_char_token(self) -> Token | None:
+        if self.ch == "=" and self.peek_char() == "=":
+            self.read_char()
+            return Token(TokenType.EQ)
+        if self.ch == "!" and self.peek_char() == "=":
+            self.read_char()
+            return Token(TokenType.NotEQ)
 
     def read_identifier_or_keyword(self) -> Token:
         position = self.position
-        while self.ch.isalpha() or self.ch == "_":
+        while self.ch.isalpha() or self.ch == "_" or self.ch.isnumeric():
             self.read_char()
 
         ident = self.input[position : self.position]
@@ -76,6 +113,17 @@ class Lexer:
         else:
             return Token(TokenType.Ident, self.input[position : self.position])
 
+    def read_string(self) -> Token:
+        self.read_char()
+        position = self.position
+        while self.ch != '"':
+            self.read_char()
+
+        self.read_char()
+        string = self.input[position : self.position - 1]
+        print(string)
+        return Token(TokenType.String, string)
+
     def next_token(self) -> Token:
         self.eat_whitespace()
 
@@ -83,14 +131,50 @@ class Lexer:
 
         if self.ch == "+":
             tok = Token(TokenType.Plus)
+        if self.ch == "-":
+            tok = Token(TokenType.Minus)
+        if self.ch == "/":
+            tok = Token(TokenType.Slash)
+        if self.ch == "*":
+            tok = Token(TokenType.Asterisk)
+        elif self.ch == "(":
+            tok = Token(TokenType.LParen)
+        elif self.ch == ")":
+            tok = Token(TokenType.RParen)
+        elif self.ch == "{":
+            tok = Token(TokenType.LBrace)
+        elif self.ch == "}":
+            tok = Token(TokenType.RBrace)
+        elif self.ch == ",":
+            tok = Token(TokenType.Comma)
+        elif self.ch == "<":
+            tok = Token(TokenType.LT)
+        elif self.ch == ">":
+            tok = Token(TokenType.GT)
+        elif self.ch == "[":
+            tok = Token(TokenType.LBracket)
+        elif self.ch == "]":
+            tok = Token(TokenType.RBracket)
+        elif self.ch == ":":
+            tok = Token(TokenType.Colon)
+        elif self.ch == '"':
+            return self.read_string()
         elif self.ch == "\0":
             tok = Token(TokenType.Eof)
         elif self.ch == ";":
             tok = Token(TokenType.Semicolon)
         elif self.ch == "!":
-            tok = Token(TokenType.Bang)
+            res = self.read_two_char_token()
+            if res:
+                tok = res
+            else:
+                tok = Token(TokenType.Bang)
         elif self.ch == "=":
-            tok = Token(TokenType.Assign)
+            res = self.read_two_char_token()
+            if res:
+                tok = res
+            else:
+                tok = Token(TokenType.Assign)
         elif self.ch.isnumeric():
             return self.read_integer()
         elif self.ch.isalpha() or self.ch == "_":
@@ -101,11 +185,11 @@ class Lexer:
 
 
 if __name__ == "__main__":
-    input = "let x = 1;"
-    lexer = Lexer(input)
+    input = """
+        {"foo": "bar"};
+    """
 
-    while True:
-        tok = lexer.next_token()
-        print(tok)
-        if tok.token_type == TokenType.Eof:
-            break
+    lexer = Lexer(input)
+    tok = lexer.next_token()
+    tok = lexer.next_token()
+    print(tok)
