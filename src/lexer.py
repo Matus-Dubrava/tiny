@@ -182,14 +182,3 @@ class Lexer:
 
         self.read_char()
         return tok
-
-
-if __name__ == "__main__":
-    input = """
-        {"foo": "bar"};
-    """
-
-    lexer = Lexer(input)
-    tok = lexer.next_token()
-    tok = lexer.next_token()
-    print(tok)
