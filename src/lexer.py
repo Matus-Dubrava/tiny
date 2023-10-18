@@ -43,7 +43,7 @@ class Token:
     line: int
     column: int
     token_type: TokenType
-    literal: Optional[str] = None
+    literal: str = ""
 
     def __eq__(self, other: "Token") -> bool:
         """

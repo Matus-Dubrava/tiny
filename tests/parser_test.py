@@ -1,5 +1,5 @@
 import pytest
-from typing import Dict, List, Type
+from typing import Type
 
 from tiny_parser import Parser
 from lexer import Lexer
@@ -10,9 +10,23 @@ import abstract_syntaxt_tree as ast
 @pytest.mark.parser
 def test_parse_infix_expression():
     tests = [
-        {"input": "!true;", "operator": "!", "expected": True},
-        {"input": "!false", "operator": "!", "expected": False},
+        {"input": "!true;", "operator": "!", "expected_value": True},
+        {"input": "!false", "operator": "!", "expected_value": False},
+        {"input": "-1", "operator": "-", "expected_value": 1},
     ]
+
+    for test in tests:
+        lexer = Lexer(test["input"])
+        parser = Parser(lexer)
+        program = parser.parse_program()
+        assert_no_parse_errors(parser)
+        assert_program_length(program, 1)
+        assert_node_type(program.statements[0], ast.PrefixExpression)
+
+        if isinstance(test["expected_value"], bool):
+            assert_boolean(program.statements[0].expr, test["expected_value"])
+        elif isinstance(test["expected_value"], int):
+            assert_integer(program.statements[0].expr, test["expected_value"])
 
 
 def test_parse_let_statement():
@@ -65,3 +79,17 @@ def assert_node_type(node: ast.Node, node_class: Type[ast.Node]):
     assert isinstance(
         node, node_class
     ), f"expected '{node.__class__.__name__}', got '{node_class.__name__}'"
+
+
+def assert_integer(node: ast.Node, expected: int):
+    assert isinstance(
+        node, ast.IntegerLiteral
+    ), f"expected 'IntegerLiteral', got '{node.__class__.__name__}'"
+    assert node.value == expected
+
+
+def assert_boolean(node: ast.Node, expected: int):
+    assert isinstance(
+        node, ast.BooleanLiteral
+    ), f"expected 'BooleanLiteral', got '{node.__class__.__name__}'"
+    assert node.value == expected
