@@ -1,6 +1,8 @@
 from abc import ABC
 from dataclasses import dataclass
-from lexer import Token
+from typing import List
+
+from lexer import Token, TokenType
 
 
 class Node(ABC):
@@ -30,3 +32,14 @@ class LetStatement(Node):
 class ReturnStatement(Node):
     token: Token
     expr: Node
+
+
+@dataclass
+class DummyExpression(Node):
+    token: Token = Token(0, 0, TokenType.Illegal)
+
+
+@dataclass
+class Program(Node):
+    token: Token
+    statements: List[Node]
