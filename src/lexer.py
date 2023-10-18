@@ -1,6 +1,6 @@
 from enum import Enum, unique
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, Set
 
 
 @unique
@@ -40,30 +40,33 @@ class TokenType(str, Enum):
 
 @dataclass
 class Token:
+    line: int
+    column: int
     token_type: TokenType
     literal: Optional[str] = None
 
     def __eq__(self, other: "Token") -> bool:
+        """
+        When comparing two tokens, by default we are not comparing their position.
+        """
         return self.token_type == other.token_type and self.literal == other.literal
 
+    def compare(self, other: "Token") -> bool:
+        """
+        Compare whether all fields match, including position.
+        """
+        return self == other and self.column == other.column and self.line == other.line
 
-ILLEGAL = Token(TokenType.Illegal)
-
-keywords: Dict[str, Token] = {
-    "let": Token(TokenType.Let),
-    "true": Token(TokenType.TRUE),
-    "false": Token(TokenType.FALSE),
-    "fn": Token(TokenType.Function),
-    "if": Token(TokenType.If),
-    "else": Token(TokenType.Else),
-    "return": Token(TokenType.Return),
-}
+    def __repr__(self):
+        return f"[{self.line},{self.column}] '{self.token_type}' {self.literal}"
 
 
 class Lexer:
     def __init__(self, input: str):
         self.position = 0
         self.read_position = 0
+        self.line = 0
+        self.column = 0
         self.input = input
         self.ch = ""
         self.read_char()
@@ -74,6 +77,7 @@ class Lexer:
         else:
             self.ch = self.input[self.read_position]
 
+        self.column += 1
         self.position = self.read_position
         self.read_position += 1
 
@@ -85,21 +89,26 @@ class Lexer:
 
     def eat_whitespace(self) -> None:
         while self.ch == " " or self.ch == "\n" or self.ch == "\t":
+            if self.ch == "\n":
+                self.line += 1
+                self.column = 0
             self.read_char()
 
     def read_integer(self) -> Token:
         position = self.position
         while self.ch.isnumeric():
             self.read_char()
-        return Token(TokenType.Int, self.input[position : self.position])
+        return Token(
+            self.line, self.column, TokenType.Int, self.input[position : self.position]
+        )
 
     def read_two_char_token(self) -> Token | None:
         if self.ch == "=" and self.peek_char() == "=":
             self.read_char()
-            return Token(TokenType.EQ)
+            return Token(self.line, self.column, TokenType.EQ)
         if self.ch == "!" and self.peek_char() == "=":
             self.read_char()
-            return Token(TokenType.NotEQ)
+            return Token(self.line, self.column, TokenType.NotEQ)
 
     def read_identifier_or_keyword(self) -> Token:
         position = self.position
@@ -108,10 +117,27 @@ class Lexer:
 
         ident = self.input[position : self.position]
 
-        if ident in keywords:
-            return keywords[ident]
+        if ident == "let":
+            return Token(self.line, self.column, TokenType.Let)
+        elif ident == "return":
+            return Token(self.line, self.column, TokenType.Return)
+        elif ident == "if":
+            return Token(self.line, self.column, TokenType.If)
+        elif ident == "else":
+            return Token(self.line, self.column, TokenType.Else)
+        elif ident == "true":
+            return Token(self.line, self.column, TokenType.TRUE)
+        elif ident == "false":
+            return Token(self.line, self.column, TokenType.FALSE)
+        elif ident == "fn":
+            return Token(self.line, self.column, TokenType.Function)
         else:
-            return Token(TokenType.Ident, self.input[position : self.position])
+            return Token(
+                self.line,
+                self.column,
+                TokenType.Ident,
+                self.input[position : self.position],
+            )
 
     def read_string(self) -> Token:
         self.read_char()
@@ -122,57 +148,57 @@ class Lexer:
         self.read_char()
         string = self.input[position : self.position - 1]
         print(string)
-        return Token(TokenType.String, string)
+        return Token(self.line, self.column, TokenType.String, string)
 
     def next_token(self) -> Token:
         self.eat_whitespace()
 
         if self.ch == "+":
-            tok = Token(TokenType.Plus)
+            tok = Token(self.line, self.column, TokenType.Plus)
         if self.ch == "-":
-            tok = Token(TokenType.Minus)
+            tok = Token(self.line, self.column, TokenType.Minus)
         if self.ch == "/":
-            tok = Token(TokenType.Slash)
+            tok = Token(self.line, self.column, TokenType.Slash)
         if self.ch == "*":
-            tok = Token(TokenType.Asterisk)
+            tok = Token(self.line, self.column, TokenType.Asterisk)
         elif self.ch == "(":
-            tok = Token(TokenType.LParen)
+            tok = Token(self.line, self.column, TokenType.LParen)
         elif self.ch == ")":
-            tok = Token(TokenType.RParen)
+            tok = Token(self.line, self.column, TokenType.RParen)
         elif self.ch == "{":
-            tok = Token(TokenType.LBrace)
+            tok = Token(self.line, self.column, TokenType.LBrace)
         elif self.ch == "}":
-            tok = Token(TokenType.RBrace)
+            tok = Token(self.line, self.column, TokenType.RBrace)
         elif self.ch == ",":
-            tok = Token(TokenType.Comma)
+            tok = Token(self.line, self.column, TokenType.Comma)
         elif self.ch == "<":
-            tok = Token(TokenType.LT)
+            tok = Token(self.line, self.column, TokenType.LT)
         elif self.ch == ">":
-            tok = Token(TokenType.GT)
+            tok = Token(self.line, self.column, TokenType.GT)
         elif self.ch == "[":
-            tok = Token(TokenType.LBracket)
+            tok = Token(self.line, self.column, TokenType.LBracket)
         elif self.ch == "]":
-            tok = Token(TokenType.RBracket)
+            tok = Token(self.line, self.column, TokenType.RBracket)
         elif self.ch == ":":
-            tok = Token(TokenType.Colon)
+            tok = Token(self.line, self.column, TokenType.Colon)
         elif self.ch == '"':
             return self.read_string()
         elif self.ch == "\0":
-            tok = Token(TokenType.Eof)
+            tok = Token(self.line, self.column, TokenType.Eof)
         elif self.ch == ";":
-            tok = Token(TokenType.Semicolon)
+            tok = Token(self.line, self.column, TokenType.Semicolon)
         elif self.ch == "!":
             res = self.read_two_char_token()
             if res:
                 tok = res
             else:
-                tok = Token(TokenType.Bang)
+                tok = Token(self.line, self.column, TokenType.Bang)
         elif self.ch == "=":
             res = self.read_two_char_token()
             if res:
                 tok = res
             else:
-                tok = Token(TokenType.Assign)
+                tok = Token(self.line, self.column, TokenType.Assign)
         elif self.ch.isnumeric():
             return self.read_integer()
         elif self.ch.isalpha() or self.ch == "_":
