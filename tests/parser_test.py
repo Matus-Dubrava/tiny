@@ -22,6 +22,23 @@ def test_parse_let_statement():
         assert_node_type(program.statements[0], ast.LetStatement)
 
 
+def test_parse_return_statement():
+    tests = [
+        {"input": "return 1;", "exp_n_statements": 1},
+        {"input": "return 1 + 2", "exp_n_statements": 1},
+        {"input": "return 1 + 2; return 1", "exp_n_statements": 2},
+        {"input": "return 1 + 2; return 1; return true", "exp_n_statements": 3},
+    ]
+
+    for test in tests:
+        lexer = Lexer(test["input"])
+        parser = Parser(lexer)
+        program = parser.parse_program()
+        assert_no_parse_errors(parser)
+        assert_program_length(program, test["exp_n_statements"])
+        assert_node_type(program.statements[0], ast.ReturnStatement)
+
+
 def assert_no_parse_errors(parser: Parser):
     assert not parser.errors, f"expected no errors, got '{parser.errors}'"
 

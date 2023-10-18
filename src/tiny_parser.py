@@ -33,6 +33,8 @@ class Parser:
         while self.cur_token.token_type != TokenType.Eof:
             if self.cur_token.token_type == TokenType.Let:
                 stmt_or_error = self.parseLetStatement()
+            elif self.cur_token.token_type == TokenType.Return:
+                stmt_or_error = self.parseReturnStatement()
 
             # handle parse errors here
             if isinstance(stmt_or_error, ParseError):
@@ -42,6 +44,13 @@ class Parser:
             self.next_token()
 
         return ast.Program(cur_token, statements)
+
+    def parseReturnStatement(self) -> Union[ast.Node, ParseError]:
+        cur_tok = self.cur_token
+        self.next_token()
+        self.read_until_semicolon()
+        expr = self.parse_expression()
+        return ast.ReturnStatement(cur_tok, expr)
 
     def parseLetStatement(self) -> Union[ast.Node, ParseError]:
         cur_tok = self.cur_token
