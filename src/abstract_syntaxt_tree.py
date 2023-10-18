@@ -83,3 +83,32 @@ class InfixExpression(Node):
 
     def __repr__(self):
         return f"({self.left_expr} {self.operator} {self.right_expr})"
+
+
+@dataclass
+class BlockStatement:
+    token: Token
+    statements: List[Node]
+
+    def __repr__(self):
+        return f"{{{'; '.join([f'{stmt}' for stmt in self.statements])}}}"
+
+
+@dataclass
+class Function(Node):
+    token: Token
+    paramters: List[Identifier]
+    body: BlockStatement
+
+    def __repr__(self):
+        return f"fn({', '.join([f'{param}' for param in self.paramters])}) {self.body}"
+
+
+@dataclass
+class CallExpression(Node):
+    token: Token
+    func: Node  # can be either Function or Identifier
+    arguments: List[Node]
+
+    def __repr__(self):
+        return f"{self.func}({', '.join([f'{arg}' for arg in self.arguments])})"

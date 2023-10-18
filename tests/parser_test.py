@@ -83,6 +83,27 @@ def test_operator_precendence():
 
 @pytest.mark.sanity
 @pytest.mark.parser
+def test_parse_function_literal():
+    input = "fn(x, y) { x + y; }"
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+
+    assert isinstance(program.statements[0], ast.Function)
+    fn = program.statements[0]
+    assert len(fn.paramters) == 2, f"expect '2' parameters, got '{len(fn.parameters)}'"
+    assert_identifier(fn.paramters[0], "x")
+    assert_identifier(fn.paramters[1], "y")
+
+    assert len(fn.body.statements) == 1, f"expected '1' statement, got '{len(fn.body)}'"
+    assert_infix_expression(fn.body.statements[0], "x", "+", "y")
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_parse_infix_expression():
     tests = [
         {

@@ -56,6 +56,7 @@ class Parser:
             TokenType.Minus: self.parse_prefix_expression,
             TokenType.Ident: self.parse_identifier,
             TokenType.LParen: self.parse_grouped_expression,
+            TokenType.Function: self.parse_function_literal,
         }
 
         self.infix_parse_functions: Dict[TokenType, InfixParseFunction] = {
@@ -78,27 +79,56 @@ class Parser:
 
     def parse_program(self) -> ast.Program:
         cur_token = self.cur_token
-        nodes: List[ast.Node] = []
+        nodes = self.parse_statements()
+        return ast.Program(cur_token, nodes)
 
+    def parse_block_statement(self) -> Union[ast.Node, ParseError]:
+        cur_token = self.cur_token
+        self.next_token()
+
+        statements: List[ast.Node] = []
+        while (
+            self.cur_token.token_type != TokenType.RBrace
+            and self.cur_token.token_type != TokenType.Eof
+        ):
+            stmt_or_err = self.parse_statement()
+            if isinstance(stmt_or_err, ParseError):
+                return stmt_or_err
+
+            statements.append(stmt_or_err)
+            self.next_token()
+
+        self.expect_peek_and_advance(TokenType.RBrace)
+        return ast.BlockStatement(cur_token, statements)
+
+    def parse_statements(self) -> List[ast.Node]:
+        nodes: List[ast.Node] = []
         while self.cur_token.token_type != TokenType.Eof:
-            if self.cur_token.token_type == TokenType.Let:
-                node_or_error = self.parse_let_statement()
-            elif self.cur_token.token_type == TokenType.Return:
-                node_or_error = self.parse_return_statement()
-            else:
-                node_or_error = self.parse_expression(Precedence.Lowest)
+            node_or_err = self.parse_statement()
 
             # Here we are collecting all of the parsing errors.
-            if isinstance(node_or_error, ParseError):
-                self.errors.append(node_or_error)
+            if isinstance(node_or_err, ParseError):
+                self.errors.append(node_or_err)
             else:
-                nodes.append(node_or_error)
+                nodes.append(node_or_err)
 
             self.next_token()
             if self.cur_token.token_type == TokenType.Semicolon:
                 self.next_token()
 
-        return ast.Program(cur_token, nodes)
+        return nodes
+
+    def parse_statement(self) -> Union[ast.Node, ParseError]:
+        if self.cur_token.token_type == TokenType.Let:
+            node_or_err = self.parse_let_statement()
+        elif self.cur_token.token_type == TokenType.Return:
+            node_or_err = self.parse_return_statement()
+        else:
+            node_or_err = self.parse_expression(Precedence.Lowest)
+
+        self.read_until_semicolon()
+
+        return node_or_err
 
     def parse_integer(self) -> ast.Node:
         return ast.IntegerLiteral(self.cur_token, int(self.cur_token.literal))
@@ -108,6 +138,45 @@ class Parser:
             self.cur_token,
             True if self.cur_token.token_type == TokenType.TRUE else False,
         )
+
+    def parse_function_literal(self) -> Union[ast.Node, ParseError]:
+        cur_token = self.cur_token
+        self.next_token()
+
+        params_or_err = self.parse_list_of_expressions(TokenType.RParen)
+        if isinstance(params_or_err, ParseError):
+            return params_or_err
+
+        self.expect_peek_and_advance(TokenType.LBrace)
+        block_or_err = self.parse_block_statement()
+        if isinstance(block_or_err, ParseError):
+            return block_or_err
+
+        self.next_token()
+
+        return ast.Function(cur_token, params_or_err, block_or_err)
+
+    def parse_list_of_expressions(
+        self, closing_token: TokenType
+    ) -> Union[List[ast.Node], ParseError]:
+        expressions: List[ast.Node] = []
+
+        while (
+            self.peek_token.token_type != closing_token
+            and self.peek_token.token_type != TokenType.Eof
+        ):
+            self.next_token()
+            expr_or_err = self.parse_expression(Precedence.Lowest)
+            if isinstance(expr_or_err, ParseError):
+                return expr_or_err
+
+            expressions.append(expr_or_err)
+
+            if self.peek_token.token_type == TokenType.Comma:
+                self.next_token()
+
+        self.expect_peek_and_advance(closing_token)
+        return expressions
 
     def parse_grouped_expression(self) -> Union[ast.Node, ParseError]:
         self.next_token()
