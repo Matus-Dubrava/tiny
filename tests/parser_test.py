@@ -1,8 +1,15 @@
+import pytest
 from typing import Dict, List, Type
 
 from tiny_parser import Parser
 from lexer import Lexer
 import abstract_syntaxt_tree as ast
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
+def test_parse_infix_expression():
+    pass
 
 
 def test_parse_let_statement():
@@ -22,6 +29,8 @@ def test_parse_let_statement():
         assert_node_type(program.statements[0], ast.LetStatement)
 
 
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_parse_return_statement():
     tests = [
         {"input": "return 1;", "exp_n_statements": 1},

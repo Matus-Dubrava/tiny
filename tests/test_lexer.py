@@ -1,10 +1,11 @@
+import pytest
 import sys
-
-print(sys.path)
 
 from lexer import Lexer, Token, TokenType
 
 
+@pytest.mark.sanity
+@pytest.mark.lexer
 def test_lexer():
     input = """
         let five = 5;
@@ -151,6 +152,8 @@ def test_lexer():
         assert tok == expected_token, f"expected `{expected_token}`, got `{tok}`"
 
 
+@pytest.mark.sanity
+@pytest.mark.lexer
 def test_token_postions():
     input = """
 let five = 5;
