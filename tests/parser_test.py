@@ -8,6 +8,162 @@ import abstract_syntaxt_tree as ast
 
 @pytest.mark.sanity
 @pytest.mark.parser
+def test_operator_precendence():
+    tests = [
+        {"input": "-a * b", "expected": "((-a) * b)"},
+        {"input": "!-a", "expected": "(!(-a))"},
+        {"input": "a + b + c", "expected": "((a + b) + c)"},
+        {"input": "a + b - c", "expected": "((a + b) - c)"},
+        {"input": "a * b * c", "expected": "((a * b) * c)"},
+        {"input": "a * b / c", "expected": "((a * b) / c)"},
+        {"input": "a + b / c", "expected": "(a + (b / c))"},
+        {
+            "input": "a + b * c + d / e - f",
+            "expected": "(((a + (b * c)) + (d / e)) - f)",
+        },
+        {"input": "3 + 4; -5 * 5", "expected": "(3 + 4); ((-5) * 5)"},
+        {"input": "5 > 4 == 3 < 4", "expected": "((5 > 4) == (3 < 4))"},
+        {"input": "5 < 4 != 3 > 4", "expected": "((5 < 4) != (3 > 4))"},
+        {
+            "input": "3 + 4 * 5 == 3 * 1 + 4 * 5",
+            "expected": "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+        },
+        {
+            "input": "3 > 5 == false",
+            "expected": "((3 > 5) == False)",
+        },
+        {
+            "input": "3 < 5 == true",
+            "expected": "((3 < 5) == True)",
+        },
+        {
+            "input": "1 + (2 + 3) + 4",
+            "expected": "((1 + (2 + 3)) + 4)",
+        },
+        {
+            "input": "(5 + 5) * 2",
+            "expected": "((5 + 5) * 2)",
+        },
+        {
+            "input": "2 / (5 + 5)",
+            "expected": "(2 / (5 + 5))",
+        },
+        {
+            "input": "-(5 + 5)",
+            "expected": "(-(5 + 5))",
+        },
+        {
+            "input": "!(true == true)",
+            "expected": "(!(True == True))",
+        },
+        # {
+        #     "input": "a + add(b * c) + d",
+        #     "expected": "((a + add((b * c))) + d)",
+        # },
+        # {
+        #     "input": "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+        #     "expected": "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+        # },
+        # {
+        #     "input": "add(a + b + c * d / f + g)",
+        #     "expected": "add((((a + b) + ((c * d) / f)) + g))",
+        # },
+    ]
+
+    for test in tests:
+        lexer = Lexer(test["input"])
+        parser = Parser(lexer)
+        program = parser.parse_program()
+        assert_no_parse_errors(parser)
+
+        assert (
+            f"{program}" == test["expected"]
+        ), f'expected `{test["expected"]}`, got `{program}`'
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
+def test_parse_infix_expression():
+    tests = [
+        {
+            "input": "5 + 5;",
+            "expected_left": 5,
+            "expected_operator": "+",
+            "expected_right": 5,
+        },
+        {
+            "input": "5 - 5;",
+            "expected_left": 5,
+            "expected_operator": "-",
+            "expected_right": 5,
+        },
+        {
+            "input": "5 * 5;",
+            "expected_left": 5,
+            "expected_operator": "*",
+            "expected_right": 5,
+        },
+        {
+            "input": "5 / 5;",
+            "expected_left": 5,
+            "expected_operator": "/",
+            "expected_right": 5,
+        },
+        {
+            "input": "5 > 5;",
+            "expected_left": 5,
+            "expected_operator": ">",
+            "expected_right": 5,
+        },
+        {
+            "input": "5 < 5;",
+            "expected_left": 5,
+            "expected_operator": "<",
+            "expected_right": 5,
+        },
+        {
+            "input": "5 == 5;",
+            "expected_left": 5,
+            "expected_operator": "==",
+            "expected_right": 5,
+        },
+        {
+            "input": "5 != 5;",
+            "expected_left": 5,
+            "expected_operator": "!=",
+            "expected_right": 5,
+        },
+        {
+            "input": "true == false;",
+            "expected_left": True,
+            "expected_operator": "==",
+            "expected_right": False,
+        },
+        {
+            "input": "true != false;",
+            "expected_left": True,
+            "expected_operator": "!=",
+            "expected_right": False,
+        },
+    ]
+
+    for test in tests:
+        lexer = Lexer(test["input"])
+        parser = Parser(lexer)
+        program = parser.parse_program()
+        assert_no_parse_errors(parser)
+        assert_program_length(program, 1)
+
+        assert_infix_expression(
+            program.statements[0],
+            test["expected_left"],
+            test["expected_operator"],
+            test["expected_right"],
+        )
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_parse_prefix_expression():
     tests = [
         {"input": "!true;", "operator": "!", "expected_value": True},
@@ -114,8 +270,35 @@ def assert_integer(node: ast.Node, expected: int):
     assert node.value == expected
 
 
-def assert_boolean(node: ast.Node, expected: int):
+def assert_boolean(node: ast.Node, expected: bool):
     assert isinstance(
         node, ast.BooleanLiteral
     ), f"expected 'BooleanLiteral', got '{node.__class__.__name__}'"
     assert node.value == expected
+
+
+def assert_identifier(expr: ast.Node, expected: str):
+    assert isinstance(expr, ast.Identifier)
+    assert expr.name == expected, f"expected name '{expected}', got '{expr.name}'"
+
+
+def assert_literal_expression(expr: ast.Node, expected: any):
+    # This ugly condition is here because bool is actually instance of int
+    # in Python. Without this, bools would be tested as int.
+    if isinstance(expected, int) and expected != True and expected != False:
+        assert_integer(expr, expected)
+    elif isinstance(expected, bool):
+        assert_boolean(expr, expected)
+    elif isinstance(expected, str):
+        assert_identifier(expr, expected)
+
+
+def assert_infix_expression(
+    expr: ast.Node, expected_left: any, operator: str, expected_right: any
+):
+    assert isinstance(expr, ast.InfixExpression)
+    assert_literal_expression(expr.left_expr, expected_left)
+    assert (
+        operator == expr.operator
+    ), f"expected operator '{operator}', got '{expr.operator}'"
+    assert_literal_expression(expr.right_expr, expected_right)
