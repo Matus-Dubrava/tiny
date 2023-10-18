@@ -51,14 +51,14 @@ class Token:
         """
         return self.token_type == other.token_type and self.literal == other.literal
 
+    def __repr__(self):
+        return f"[{self.line},{self.column}] '{self.token_type}' {self.literal}"
+
     def compare(self, other: "Token") -> bool:
         """
         Compare whether all fields match, including position.
         """
         return self == other and self.column == other.column and self.line == other.line
-
-    def __repr__(self):
-        return f"[{self.line},{self.column}] '{self.token_type}' {self.literal}"
 
 
 class Lexer:
