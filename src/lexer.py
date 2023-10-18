@@ -65,7 +65,7 @@ class Lexer:
     def __init__(self, input: str):
         self.position = 0
         self.read_position = 0
-        self.line = 0
+        self.line = 1
         self.column = 0
         self.input = input
         self.ch = ""
@@ -96,10 +96,11 @@ class Lexer:
 
     def read_integer(self) -> Token:
         position = self.position
+        column = self.column
         while self.ch.isnumeric():
             self.read_char()
         return Token(
-            self.line, self.column, TokenType.Int, self.input[position : self.position]
+            self.line, column, TokenType.Int, self.input[position : self.position]
         )
 
     def read_two_char_token(self) -> Token | None:
@@ -112,29 +113,30 @@ class Lexer:
 
     def read_identifier_or_keyword(self) -> Token:
         position = self.position
+        column = self.column
         while self.ch.isalpha() or self.ch == "_" or self.ch.isnumeric():
             self.read_char()
 
         ident = self.input[position : self.position]
 
         if ident == "let":
-            return Token(self.line, self.column, TokenType.Let)
+            return Token(self.line, column, TokenType.Let)
         elif ident == "return":
-            return Token(self.line, self.column, TokenType.Return)
+            return Token(self.line, column, TokenType.Return)
         elif ident == "if":
-            return Token(self.line, self.column, TokenType.If)
+            return Token(self.line, column, TokenType.If)
         elif ident == "else":
-            return Token(self.line, self.column, TokenType.Else)
+            return Token(self.line, column, TokenType.Else)
         elif ident == "true":
-            return Token(self.line, self.column, TokenType.TRUE)
+            return Token(self.line, column, TokenType.TRUE)
         elif ident == "false":
-            return Token(self.line, self.column, TokenType.FALSE)
+            return Token(self.line, column, TokenType.FALSE)
         elif ident == "fn":
-            return Token(self.line, self.column, TokenType.Function)
+            return Token(self.line, column, TokenType.Function)
         else:
             return Token(
                 self.line,
-                self.column,
+                column,
                 TokenType.Ident,
                 self.input[position : self.position],
             )
