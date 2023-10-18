@@ -16,6 +16,12 @@ class IntegerLiteral(Node):
 
 
 @dataclass
+class BooleanLiteral(Node):
+    token: Token
+    value: bool
+
+
+@dataclass
 class Identifier(Node):
     token: Token
     name: str
@@ -43,3 +49,10 @@ class DummyExpression(Node):
 class Program(Node):
     token: Token
     statements: List[Node]
+
+
+@dataclass
+class PrefixExpression(Node):
+    token: Token
+    operator: str
+    expr: Node

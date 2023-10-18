@@ -1,6 +1,7 @@
 from lexer import Token, Lexer, TokenType
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Callable, Dict
 from dataclasses import dataclass
+from enum import Enum, unique
 
 import abstract_syntaxt_tree as ast
 
@@ -12,12 +13,32 @@ class ParseError:
     msg: str
 
 
+@unique
+class Precedence(Enum):
+    Lowest = 0
+    Assign = 1
+    Equals = 2
+    LessGreater = 3
+    Sum = 4
+    Product = 5
+    Prefix = 6
+    Call = 7
+    Index = 8
+
+
 class Parser:
     def __init__(self, lexer: Lexer):
         self.lexer = lexer
         self.cur_token: Token = Token(0, 0, TokenType.Illegal)
         self.peek_token: Token = Token(0, 0, TokenType.Illegal)
         self.errors: List[ParseError] = []
+
+        self.prefix_parse_functions: Dict[TokenType, Callable] = {
+            TokenType.Bang: self.parse_prefix_expression,
+            TokenType.Int: self.parse_integer,
+            TokenType.TRUE: self.parse_boolean,
+            TokenType.FALSE: self.parse_boolean,
+        }
 
         self.next_token()
         self.next_token()
@@ -28,31 +49,48 @@ class Parser:
 
     def parse_program(self) -> ast.Program:
         cur_token = self.cur_token
-        statements: List[ast.Node] = []
+        nodes: List[ast.Node] = []
 
         while self.cur_token.token_type != TokenType.Eof:
             if self.cur_token.token_type == TokenType.Let:
-                stmt_or_error = self.parseLetStatement()
+                node_or_error = self.parse_let_statement()
             elif self.cur_token.token_type == TokenType.Return:
-                stmt_or_error = self.parseReturnStatement()
+                node_or_error = self.parse_return_statement()
+            else:
+                node_or_error = self.parse_expression(Precedence.Lowest)
 
             # handle parse errors here
-            if isinstance(stmt_or_error, ParseError):
-                self.errors.append(stmt_or_error)
+            if isinstance(node_or_error, ParseError):
+                self.errors.append(node_or_error)
 
-            statements.append(stmt_or_error)
+            nodes.append(node_or_error)
             self.next_token()
 
-        return ast.Program(cur_token, statements)
+        return ast.Program(cur_token, nodes)
 
-    def parseReturnStatement(self) -> Union[ast.Node, ParseError]:
+    def parse_integer(self) -> ast.Node:
+        return ast.IntegerLiteral(self.cur_token, int(self.cur_token.literal))
+
+    def parse_boolean(self) -> ast.Node:
+        return ast.BooleanLiteral(self.cur_token, True if self.cur_token.literal == "true" else False)
+
+    def parse_prefix_expression(self) -> Union[ast.Node, ParseError]:
+        cur_tok = self.cur_token
+
+        expr_or_error = self.parse_expression(Precedence.Prefix)
+        if isinstance(expr_or_error, ParseError):
+            return expr_or_error
+
+        return ast.PrefixExpression(cur_tok, cur_tok.literal, expr_or_error)
+
+    def parse_return_statement(self) -> Union[ast.Node, ParseError]:
         cur_tok = self.cur_token
         self.next_token()
+        expr = self.parse_expression(Precedence.Lowest)
         self.read_until_semicolon()
-        expr = self.parse_expression()
         return ast.ReturnStatement(cur_tok, expr)
 
-    def parseLetStatement(self) -> Union[ast.Node, ParseError]:
+    def parse_let_statement(self) -> Union[ast.Node, ParseError]:
         cur_tok = self.cur_token
         self.next_token()
 
@@ -62,14 +100,30 @@ class Parser:
             return maybe_err
 
         self.next_token()
-        expr_or_err = self.parse_expression()
+        expr_or_err = self.parse_expression(Precedence.Lowest)
         if isinstance(expr_or_err, ParseError):
             return expr_or_err
 
+        self.read_until_semicolon()
         return ast.LetStatement(cur_tok, ident, expr_or_err)
 
-    def parse_expression(self) -> Union[ast.Node, ParseError]:
+    def parse_expression(self, precedence: Precedence) -> Union[ast.Node, ParseError]:
         cur_tok = self.cur_token
+
+        prefix_fn = self.prefix_parse_functions.get(self.cur_token.token_type)
+        if not prefix_fn:
+            return ParseError(
+                cur_tok.line,
+                cur_tok.column,
+                f"no prefix parse function found for '{self.cur_token.token_type}'",
+            )
+
+        prefix_expr_or_error = prefix_fn()
+        if isinstance(prefix_expr_or_error, ParseError):
+            return prefix_expr_or_error
+
+        return prefix_expr_or_error
+
         self.read_until_semicolon()
         expr = ast.DummyExpression(cur_tok)
         return expr

@@ -9,7 +9,10 @@ import abstract_syntaxt_tree as ast
 @pytest.mark.sanity
 @pytest.mark.parser
 def test_parse_infix_expression():
-    pass
+    tests = [
+        {"input": "!true;", "operator": "!", "expected": True},
+        {"input": "!false", "operator": "!", "expected": False},
+    ]
 
 
 def test_parse_let_statement():
