@@ -8,7 +8,7 @@ import abstract_syntaxt_tree as ast
 
 @pytest.mark.sanity
 @pytest.mark.parser
-def test_parse_infix_expression():
+def test_parse_prefix_expression():
     tests = [
         {"input": "!true;", "operator": "!", "expected_value": True},
         {"input": "!false", "operator": "!", "expected_value": False},
@@ -29,6 +29,32 @@ def test_parse_infix_expression():
             assert_integer(program.statements[0].expr, test["expected_value"])
 
 
+@pytest.mark.sanity
+@pytest.mark.parser
+def test_parse_multiple_applications_of_prefix_express():
+    tests = [
+        {"input": "!!true;", "operator": "!", "expected_value": True},
+        {"input": "!!false", "operator": "!", "expected_value": False},
+        {"input": "--1", "operator": "-", "expected_value": 1},
+    ]
+
+    for test in tests:
+        lexer = Lexer(test["input"])
+        parser = Parser(lexer)
+        program = parser.parse_program()
+        assert_no_parse_errors(parser)
+        assert_program_length(program, 1)
+        assert_node_type(program.statements[0], ast.PrefixExpression)
+        assert_node_type(program.statements[0].expr, ast.PrefixExpression)
+
+        if isinstance(test["expected_value"], bool):
+            assert_boolean(program.statements[0].expr.expr, test["expected_value"])
+        elif isinstance(test["expected_value"], int):
+            assert_integer(program.statements[0].expr.expr, test["expected_value"])
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_parse_let_statement():
     tests = [
         {"input": "let a = 1;", "exp_n_statements": 1},
