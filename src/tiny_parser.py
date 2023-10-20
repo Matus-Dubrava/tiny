@@ -298,6 +298,7 @@ class Parser:
         self.next_token()
 
         right_expr_or_error = self.parse_expression(cur_precedence, depth + 1)
+        print(right_expr_or_error)
         if isinstance(right_expr_or_error, ParseError):
             return right_expr_or_error
 
