@@ -83,6 +83,29 @@ def test_operator_precendence():
 
 @pytest.mark.sanity
 @pytest.mark.parser
+def test_array_literal():
+    input = "[1, 2 + 3, 4 * 5]"
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+
+    assert_node_type(program.statements[0], ast.ArrayLiteral)
+    list_expr: ast.ArrayLiteral = program.statements[0]
+
+    assert (
+        len(list_expr.expressions) == 3
+    ), f"expected '3' expressions, got '{len(list_expr.expressions)}'"
+
+    assert_integer(list_expr.expressions[0], 1)
+    assert_infix_expression(list_expr.expressions[1], 2, "+", 3)
+    assert_infix_expression(list_expr.expressions[2], 4, "*", 5)
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_parse_call_expression():
     input = "add(1, 2 * 3, 4 + 5);"
 

@@ -66,6 +66,7 @@ class Parser:
             TokenType.LParen: self.parse_grouped_expression,
             TokenType.Function: self.parse_function_literal,
             TokenType.If: self.parse_if_expression,
+            TokenType.LBracket: self.parse_array_literal,
         }
 
         self.infix_parse_functions: Dict[TokenType, InfixParseFunction] = {
@@ -235,6 +236,16 @@ class Parser:
         else:
             return ast.IfExpression(cur_token, condition_or_err, consequence_or_err)
 
+    def parse_array_literal(self, depth: int) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "ARRAY EXPR", self.cur_token)
+        cur_token = self.cur_token
+
+        exprs_or_err = self.parse_list_of_expressions(TokenType.RBracket, depth + 1)
+        if isinstance(exprs_or_err, ParseError):
+            return exprs_or_err
+
+        return ast.ArrayLiteral(cur_token, exprs_or_err)
+
     def parse_grouped_expression(self, depth: int) -> Union[ast.Node, ParseError]:
         show_parse_info(depth, "GROUPED EXPR", self.cur_token)
         self.next_token()
@@ -372,7 +383,7 @@ class Parser:
 
 
 if __name__ == "__main__":
-    input = "if (true) { return 1; } else { x };"
+    input = "[1, 2 + 3]"
     lexer = Lexer(input)
     parser = Parser(lexer)
     program = parser.parse_program()

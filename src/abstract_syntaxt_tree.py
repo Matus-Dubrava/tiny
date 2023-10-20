@@ -126,3 +126,12 @@ class IfExpression(Node):
             return f"if ({self.condition}) {self.consequence} else {self.alternative}"
         else:
             return f"if ({self.condition}) {self.consequence}"
+
+
+@dataclass
+class ArrayLiteral(Node):
+    token: Token
+    expressions: List[Node]
+
+    def __repr__(self):
+        return f"[{', '.join([f'{expr}' for expr in self.expressions])}]"
