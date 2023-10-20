@@ -83,6 +83,70 @@ def test_operator_precendence():
 
 @pytest.mark.sanity
 @pytest.mark.parser
+def test_parse_call_expression():
+    input = "add(1, 2 * 3, 4 + 5);"
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+
+    assert_node_type(program.statements[0], ast.CallExpression)
+    call_expr: ast.CallExpression = program.statements[0]
+    assert_identifier(call_expr.func, "add")
+    assert (
+        len(call_expr.arguments) == 3
+    ), f"expected '3' arguments, got '{len(call_expr)}'"
+    assert_integer(call_expr.arguments[0], 1)
+    assert_infix_expression(call_expr.arguments[1], 2, "*", 3)
+    assert_infix_expression(call_expr.arguments[2], 4, "+", 5)
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
+def test_parse_call_expression_without_arguments():
+    input = "add();"
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+
+    assert_node_type(program.statements[0], ast.CallExpression)
+    call_expr: ast.CallExpression = program.statements[0]
+    assert_identifier(call_expr.func, "add")
+    assert (
+        len(call_expr.arguments) == 0
+    ), f"expected '0' arguments, got '{len(call_expr)}'"
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
+def test_parse_call_expression_with_function_literal():
+    input = "fn(x) {x + 1}(1)"
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+
+    assert_node_type(program.statements[0], ast.CallExpression)
+    call_expr: ast.CallExpression = program.statements[0]
+    assert_node_type(call_expr.func, ast.Function)
+    fn: ast.Function = call_expr.func
+    assert_identifier(fn.paramters[0], "x")
+    assert_infix_expression(fn.body.statements[0], "x", "+", 1)
+
+    assert (
+        len(call_expr.arguments) == 1
+    ), f"expected '1' arguments, got '{len(call_expr)}'"
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_parse_function_literal():
     input = "fn(x, y) { x + y; }"
 

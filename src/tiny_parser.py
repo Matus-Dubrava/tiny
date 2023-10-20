@@ -157,7 +157,7 @@ class Parser:
         show_parse_info(depth, "CALL EXPR", self.cur_token)
         cur_token = self.cur_token
 
-        args_or_err = self.parse_list_of_expressions(TokenType.RParen)
+        args_or_err = self.parse_list_of_expressions(TokenType.RParen, depth + 1)
         if isinstance(args_or_err, ParseError):
             return args_or_err
 
@@ -177,7 +177,6 @@ class Parser:
         if isinstance(block_or_err, ParseError):
             return block_or_err
 
-        self.next_token()
         return ast.Function(cur_token, params_or_err, block_or_err)
 
     def parse_list_of_expressions(
@@ -340,7 +339,8 @@ class Parser:
 
 
 if __name__ == "__main__":
-    input = "fn(x, y) {x + y}"
+    input = "fn(x, y) {x + y}(1, 2)"
+    # input = "add(1, 2)"
     lexer = Lexer(input)
     parser = Parser(lexer)
     program = parser.parse_program()
