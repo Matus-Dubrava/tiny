@@ -138,6 +138,16 @@ class ArrayLiteral(Node):
 
 
 @dataclass
+class IndexExpression(Node):
+    token: Token
+    left_expr: Node
+    index: Node
+
+    def __repr__(self):
+        return f"{self.left_expr}[{self.index}]"
+
+
+@dataclass
 class StringLiteral(Node):
     token: Token
     value: str

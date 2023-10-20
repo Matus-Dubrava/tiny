@@ -38,6 +38,7 @@ precedences: Dict[TokenType, Precedence] = {
     TokenType.EQ: Precedence.Equals,
     TokenType.NotEQ: Precedence.Equals,
     TokenType.LParen: Precedence.Call,
+    TokenType.LBracket: Precedence.Index,
 }
 
 PrefixParseFunction = Callable[[int], Union[ast.Node, ParseError]]
@@ -80,6 +81,7 @@ class Parser:
             TokenType.EQ: self.parse_infix_expression,
             TokenType.NotEQ: self.parse_infix_expression,
             TokenType.LParen: self.parse_call_expression,
+            TokenType.LBracket: self.parse_index_expression,
         }
 
         self.next_token()
@@ -250,6 +252,20 @@ class Parser:
             return exprs_or_err
 
         return ast.ArrayLiteral(cur_token, exprs_or_err)
+
+    def parse_index_expression(
+        self, left_expr: ast.Node, depth: int
+    ) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "INDEX EXPR", self.cur_token)
+        cur_token = self.cur_token
+        self.next_token()
+
+        index_or_err = self.parse_expression(Precedence.Lowest, depth + 1)
+        if isinstance(index_or_err, ParseError):
+            return index_or_err
+
+        self.expect_peek_and_advance(TokenType.RBracket)
+        return ast.IndexExpression(cur_token, left_expr, index_or_err)
 
     def parse_grouped_expression(self, depth: int) -> Union[ast.Node, ParseError]:
         show_parse_info(depth, "GROUPED EXPR", self.cur_token)

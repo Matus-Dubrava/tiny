@@ -83,6 +83,21 @@ def test_operator_precendence():
 
 @pytest.mark.sanity
 @pytest.mark.parser
+def test_index_expression():
+    input = "arr[10 * 10]"
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+    assert_node_type(program.statements[0], ast.IndexExpression)
+    assert_identifier(program.statements[0].left_expr, "arr")
+    assert_infix_expression(program.statements[0].index, 10, "*", 10)
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_string_literal():
     input = '"Hello world"'
 
