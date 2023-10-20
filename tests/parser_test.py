@@ -91,6 +91,66 @@ def test_operator_precendence():
 
 @pytest.mark.sanity
 @pytest.mark.parser
+def test_hash_literal_with_string_keys():
+    input = '{ "one": 1, "two": 2, "three": 3 }'
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+    assert_node_type(program.statements[0], ast.HashLiteral)
+    hash_literal: ast.HashLiteral = program.statements[0]
+
+    expected = {"one": 1, "two": 2, "three": 3}
+
+    for k, v in hash_literal.pairs.items():
+        assert_node_type(k, ast.StringLiteral)
+        expected_value = expected.get(k.value)
+        assert expected_value is not None
+        assert_integer(v, expected_value)
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
+def test_hash_literal_int_keys():
+    input = "{ 1: 1, 2: 2, 3: 3 }"
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+    assert_node_type(program.statements[0], ast.HashLiteral)
+    hash_literal: ast.HashLiteral = program.statements[0]
+
+    expected = {1: 1, 2: 2, 3: 3}
+
+    for k, v in hash_literal.pairs.items():
+        assert_node_type(k, ast.IntegerLiteral)
+        expected_value = expected.get(k.value)
+        assert expected_value is not None
+        assert_integer(v, expected_value)
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
+def test_empty_hash_literal():
+    input = "{}"
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+    assert_node_type(program.statements[0], ast.HashLiteral)
+    hash_literal: ast.HashLiteral = program.statements[0]
+
+    assert len(hash_literal.pairs) == 0
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_index_expression():
     input = "arr[10 * 10]"
 
