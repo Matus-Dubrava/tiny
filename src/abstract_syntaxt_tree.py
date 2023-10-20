@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from lexer import Token
 
@@ -86,7 +86,7 @@ class InfixExpression(Node):
 
 
 @dataclass
-class BlockStatement:
+class BlockStatement(Node):
     token: Token
     statements: List[Node]
 
@@ -126,6 +126,18 @@ class IfExpression(Node):
             return f"if ({self.condition}) {self.consequence} else {self.alternative}"
         else:
             return f"if ({self.condition}) {self.consequence}"
+
+
+@dataclass
+class HashLiteral(Node):
+    token: Token
+    pairs: Dict[Node, Node]
+
+    def __repr__(self):
+        pairs: List[str] = []
+        for key, value in self.pairs.items():
+            pairs.append(f"{key} : {value}")
+        return f"{{{','.join([pair for pair in pairs])}}}"
 
 
 @dataclass

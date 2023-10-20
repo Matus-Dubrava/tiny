@@ -190,7 +190,7 @@ def test_parse_if_expression():
 
 @pytest.mark.sanity
 @pytest.mark.parser
-def test_parse_if_expression():
+def test_parse_if_expression_with_alteranative():
     input = "if (x < y) { x } else { y }"
 
     lexer = Lexer(input)
