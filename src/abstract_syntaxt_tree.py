@@ -135,3 +135,12 @@ class ArrayLiteral(Node):
 
     def __repr__(self):
         return f"[{', '.join([f'{expr}' for expr in self.expressions])}]"
+
+
+@dataclass
+class StringLiteral(Node):
+    token: Token
+    value: str
+
+    def __repr__(self):
+        return f'"{self.value}"'

@@ -67,6 +67,7 @@ class Parser:
             TokenType.Function: self.parse_function_literal,
             TokenType.If: self.parse_if_expression,
             TokenType.LBracket: self.parse_array_literal,
+            TokenType.String: self.parse_string_literal,
         }
 
         self.infix_parse_functions: Dict[TokenType, InfixParseFunction] = {
@@ -236,8 +237,12 @@ class Parser:
         else:
             return ast.IfExpression(cur_token, condition_or_err, consequence_or_err)
 
+    def parse_string_literal(self, depth: int) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "STRING LITERAL", self.cur_token)
+        return ast.StringLiteral(self.cur_token, self.cur_token.literal)
+
     def parse_array_literal(self, depth: int) -> Union[ast.Node, ParseError]:
-        show_parse_info(depth, "ARRAY EXPR", self.cur_token)
+        show_parse_info(depth, "ARRAY LITERAL", self.cur_token)
         cur_token = self.cur_token
 
         exprs_or_err = self.parse_list_of_expressions(TokenType.RBracket, depth + 1)

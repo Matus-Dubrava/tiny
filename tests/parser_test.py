@@ -83,6 +83,21 @@ def test_operator_precendence():
 
 @pytest.mark.sanity
 @pytest.mark.parser
+def test_string_literal():
+    input = '"Hello world"'
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+
+    assert_node_type(program.statements[0], ast.StringLiteral)
+    assert_string(program.statements[0], "Hello world")
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_array_literal():
     input = "[1, 2 + 3, 4 * 5]"
 
@@ -458,3 +473,8 @@ def assert_infix_expression(
         operator == expr.operator
     ), f"expected operator '{operator}', got '{expr.operator}'"
     assert_literal_expression(expr.right_expr, expected_right)
+
+
+def assert_string(expr: ast.Node, expected: str):
+    assert isinstance(expr, ast.StringLiteral)
+    assert expr.value == expected, f'expected string "{expected}", got "{expr.value}"'
