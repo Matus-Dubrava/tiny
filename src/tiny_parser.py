@@ -5,6 +5,8 @@ from enum import Enum, unique
 
 import abstract_syntaxt_tree as ast
 
+DEBUG = True
+
 
 @dataclass
 class ParseError:
@@ -35,10 +37,16 @@ precedences: Dict[TokenType, Precedence] = {
     TokenType.GT: Precedence.LessGreater,
     TokenType.EQ: Precedence.Equals,
     TokenType.NotEQ: Precedence.Equals,
+    TokenType.LParen: Precedence.Call,
 }
 
-PrefixParseFunction = Callable[[], Union[ast.Node, ParseError]]
-InfixParseFunction = Callable[[ast.Node], Union[ast.Node, ParseError]]
+PrefixParseFunction = Callable[[int], Union[ast.Node, ParseError]]
+InfixParseFunction = Callable[[ast.Node, int], Union[ast.Node, ParseError]]
+
+
+def show_parse_info(depth: int, node_name: str, cur_token: Token) -> None:
+    if DEBUG:
+        print("".join(["\t"] * depth) + f" {node_name}: token: {cur_token}")
 
 
 class Parser:
@@ -68,6 +76,7 @@ class Parser:
             TokenType.GT: self.parse_infix_expression,
             TokenType.EQ: self.parse_infix_expression,
             TokenType.NotEQ: self.parse_infix_expression,
+            TokenType.LParen: self.parse_call_expression,
         }
 
         self.next_token()
@@ -79,10 +88,10 @@ class Parser:
 
     def parse_program(self) -> ast.Program:
         cur_token = self.cur_token
-        nodes = self.parse_statements()
+        nodes = self.parse_statements(depth=0)
         return ast.Program(cur_token, nodes)
 
-    def parse_block_statement(self) -> Union[ast.Node, ParseError]:
+    def parse_block_statement(self, depth: int) -> Union[ast.Node, ParseError]:
         cur_token = self.cur_token
         self.next_token()
 
@@ -91,7 +100,7 @@ class Parser:
             self.cur_token.token_type != TokenType.RBrace
             and self.cur_token.token_type != TokenType.Eof
         ):
-            stmt_or_err = self.parse_statement()
+            stmt_or_err = self.parse_statement(depth)
             if isinstance(stmt_or_err, ParseError):
                 return stmt_or_err
 
@@ -101,10 +110,10 @@ class Parser:
         self.expect_peek_and_advance(TokenType.RBrace)
         return ast.BlockStatement(cur_token, statements)
 
-    def parse_statements(self) -> List[ast.Node]:
+    def parse_statements(self, depth: int) -> List[ast.Node]:
         nodes: List[ast.Node] = []
         while self.cur_token.token_type != TokenType.Eof:
-            node_or_err = self.parse_statement()
+            node_or_err = self.parse_statement(depth)
 
             # Here we are collecting all of the parsing errors.
             if isinstance(node_or_err, ParseError):
@@ -118,47 +127,63 @@ class Parser:
 
         return nodes
 
-    def parse_statement(self) -> Union[ast.Node, ParseError]:
+    def parse_statement(self, depth: int) -> Union[ast.Node, ParseError]:
         if self.cur_token.token_type == TokenType.Let:
-            node_or_err = self.parse_let_statement()
+            node_or_err = self.parse_let_statement(depth)
         elif self.cur_token.token_type == TokenType.Return:
-            node_or_err = self.parse_return_statement()
+            node_or_err = self.parse_return_statement(depth)
         else:
-            node_or_err = self.parse_expression(Precedence.Lowest)
+            node_or_err = self.parse_expression(Precedence.Lowest, depth)
 
-        self.read_until_semicolon()
+        if self.peek_token.token_type == TokenType.Semicolon:
+            self.next_token()
 
         return node_or_err
 
-    def parse_integer(self) -> ast.Node:
+    def parse_integer(self, depth: int) -> ast.Node:
+        show_parse_info(depth, "INTEGER", self.cur_token)
         return ast.IntegerLiteral(self.cur_token, int(self.cur_token.literal))
 
-    def parse_boolean(self) -> ast.Node:
+    def parse_boolean(self, depth) -> ast.Node:
+        show_parse_info(depth, "BOOLEAN", self.cur_token)
         return ast.BooleanLiteral(
             self.cur_token,
             True if self.cur_token.token_type == TokenType.TRUE else False,
         )
 
-    def parse_function_literal(self) -> Union[ast.Node, ParseError]:
+    def parse_call_expression(
+        self, left_expr: ast.Node, depth: int
+    ) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "CALL EXPR", self.cur_token)
+        cur_token = self.cur_token
+
+        args_or_err = self.parse_list_of_expressions(TokenType.RParen)
+        if isinstance(args_or_err, ParseError):
+            return args_or_err
+
+        return ast.CallExpression(cur_token, left_expr, args_or_err)
+
+    def parse_function_literal(self, depth: int) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "FUNCTION", self.cur_token)
         cur_token = self.cur_token
         self.next_token()
 
-        params_or_err = self.parse_list_of_expressions(TokenType.RParen)
+        params_or_err = self.parse_list_of_expressions(TokenType.RParen, depth + 1)
         if isinstance(params_or_err, ParseError):
             return params_or_err
 
         self.expect_peek_and_advance(TokenType.LBrace)
-        block_or_err = self.parse_block_statement()
+        block_or_err = self.parse_block_statement(depth + 1)
         if isinstance(block_or_err, ParseError):
             return block_or_err
 
         self.next_token()
-
         return ast.Function(cur_token, params_or_err, block_or_err)
 
     def parse_list_of_expressions(
-        self, closing_token: TokenType
+        self, closing_token: TokenType, depth: int
     ) -> Union[List[ast.Node], ParseError]:
+        show_parse_info(depth, "LIST OF EXPR", self.cur_token)
         expressions: List[ast.Node] = []
 
         while (
@@ -166,7 +191,7 @@ class Parser:
             and self.peek_token.token_type != TokenType.Eof
         ):
             self.next_token()
-            expr_or_err = self.parse_expression(Precedence.Lowest)
+            expr_or_err = self.parse_expression(Precedence.Lowest, depth + 1)
             if isinstance(expr_or_err, ParseError):
                 return expr_or_err
 
@@ -178,34 +203,37 @@ class Parser:
         self.expect_peek_and_advance(closing_token)
         return expressions
 
-    def parse_grouped_expression(self) -> Union[ast.Node, ParseError]:
+    def parse_grouped_expression(self, depth: int) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "GROUPED EXPR", self.cur_token)
         self.next_token()
 
-        expr_or_err = self.parse_expression(Precedence.Lowest)
+        expr_or_err = self.parse_expression(Precedence.Lowest, depth + 1)
         if isinstance(expr_or_err, ParseError):
             return expr_or_err
 
         self.expect_peek_and_advance(TokenType.RParen)
         return expr_or_err
 
-    def parse_prefix_expression(self) -> Union[ast.Node, ParseError]:
+    def parse_prefix_expression(self, depth: int) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "PREFIX EXPR", self.cur_token)
         cur_tok = self.cur_token
 
         self.next_token()
-        expr_or_error = self.parse_expression(Precedence.Prefix)
+        expr_or_error = self.parse_expression(Precedence.Prefix, depth + 1)
         if isinstance(expr_or_error, ParseError):
             return expr_or_error
 
         return ast.PrefixExpression(cur_tok, cur_tok.token_type.value, expr_or_error)
 
     def parse_infix_expression(
-        self, left_expr: ast.Node
+        self, left_expr: ast.Node, depth: int
     ) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "INFIX EXPR", self.cur_token)
         cur_token = self.cur_token
         cur_precedence = self.get_current_precendence()
         self.next_token()
 
-        right_expr_or_error = self.parse_expression(cur_precedence)
+        right_expr_or_error = self.parse_expression(cur_precedence, depth + 1)
         if isinstance(right_expr_or_error, ParseError):
             return right_expr_or_error
 
@@ -213,34 +241,38 @@ class Parser:
             cur_token, left_expr, cur_token.token_type.value, right_expr_or_error
         )
 
-    def parse_return_statement(self) -> Union[ast.Node, ParseError]:
+    def parse_return_statement(self, depth: int) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "RETURN STMT", self.cur_token)
         cur_tok = self.cur_token
         self.next_token()
-        expr_or_error = self.parse_expression(Precedence.Lowest)
+        expr_or_error = self.parse_expression(Precedence.Lowest, depth + 1)
         if isinstance(expr_or_error, ParseError):
             return expr_or_error
 
         self.read_until_semicolon()
         return ast.ReturnStatement(cur_tok, expr_or_error)
 
-    def parse_let_statement(self) -> Union[ast.Node, ParseError]:
+    def parse_let_statement(self, depth: int) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "LET STMT", self.cur_token)
         cur_tok = self.cur_token
         self.next_token()
 
-        ident = self.parse_identifier()
+        ident = self.parse_identifier(depth + 1)
         maybe_err = self.expect_peek_and_advance(TokenType.Assign)
         if maybe_err:
             return maybe_err
 
         self.next_token()
-        expr_or_err = self.parse_expression(Precedence.Lowest)
+        expr_or_err = self.parse_expression(Precedence.Lowest, depth + 1)
         if isinstance(expr_or_err, ParseError):
             return expr_or_err
 
         self.read_until_semicolon()
         return ast.LetStatement(cur_tok, ident, expr_or_err)
 
-    def parse_expression(self, precedence: Precedence) -> Union[ast.Node, ParseError]:
+    def parse_expression(
+        self, precedence: Precedence, depth: int
+    ) -> Union[ast.Node, ParseError]:
         cur_tok = self.cur_token
 
         prefix_fn = self.prefix_parse_functions.get(self.cur_token.token_type)
@@ -251,7 +283,7 @@ class Parser:
                 f"no prefix parse function found for '{self.cur_token.token_type}'",
             )
 
-        left_expr_or_err = prefix_fn()
+        left_expr_or_err = prefix_fn(depth)
 
         while (
             self.peek_token.token_type != TokenType.Semicolon
@@ -266,9 +298,13 @@ class Parser:
 
             self.next_token()
 
-            left_expr_or_err = infix_fn(left_expr_or_err)
+            left_expr_or_err = infix_fn(left_expr_or_err, depth)
 
         return left_expr_or_err
+
+    def parse_identifier(self, depth: int):
+        show_parse_info(depth, "IDENTIFIER", self.cur_token)
+        return ast.Identifier(self.cur_token, self.cur_token.literal)
 
     def read_until_semicolon(self) -> None:
         while (
@@ -288,9 +324,6 @@ class Parser:
         self.next_token()
         return None
 
-    def parse_identifier(self):
-        return ast.Identifier(self.cur_token, self.cur_token.literal)
-
     def get_current_precendence(self) -> Precedence:
         precedence = precedences.get(self.cur_token.token_type)
         if precedence:
@@ -304,3 +337,12 @@ class Parser:
             return precedence
         else:
             return Precedence.Lowest
+
+
+if __name__ == "__main__":
+    input = "fn(x, y) {x + y}"
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    print(program)
+    print(parser.errors)
