@@ -65,6 +65,7 @@ class Parser:
             TokenType.Ident: self.parse_identifier,
             TokenType.LParen: self.parse_grouped_expression,
             TokenType.Function: self.parse_function_literal,
+            TokenType.If: self.parse_if_expression,
         }
 
         self.infix_parse_functions: Dict[TokenType, InfixParseFunction] = {
@@ -201,6 +202,38 @@ class Parser:
 
         self.expect_peek_and_advance(closing_token)
         return expressions
+
+    def parse_if_expression(self, depth: int) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "IF EXPR", self.cur_token)
+        cur_token = self.cur_token
+        self.expect_peek_and_advance(TokenType.LParen)
+        self.next_token()
+
+        condition_or_err = self.parse_expression(Precedence.Lowest, depth + 1)
+        if isinstance(condition_or_err, ParseError):
+            return condition_or_err
+
+        self.expect_peek_and_advance(TokenType.RParen)
+        self.next_token()
+
+        consequence_or_err = self.parse_block_statement(depth + 1)
+        if isinstance(consequence_or_err, ParseError):
+            return consequence_or_err
+
+        self.next_token()
+
+        if self.cur_token.token_type == TokenType.Else:
+            self.next_token()
+            alternative_or_err = self.parse_block_statement(depth + 1)
+            if isinstance(alternative_or_err, ParseError):
+                return alternative_or_err
+
+            self.next_token()
+            return ast.IfExpression(
+                cur_token, condition_or_err, consequence_or_err, alternative_or_err
+            )
+        else:
+            return ast.IfExpression(cur_token, condition_or_err, consequence_or_err)
 
     def parse_grouped_expression(self, depth: int) -> Union[ast.Node, ParseError]:
         show_parse_info(depth, "GROUPED EXPR", self.cur_token)
@@ -339,8 +372,7 @@ class Parser:
 
 
 if __name__ == "__main__":
-    input = "fn(x, y) {x + y}(1, 2)"
-    # input = "add(1, 2)"
+    input = "if (true) { return 1; } else { x };"
     lexer = Lexer(input)
     parser = Parser(lexer)
     program = parser.parse_program()

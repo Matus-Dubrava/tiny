@@ -105,6 +105,54 @@ def test_parse_call_expression():
 
 @pytest.mark.sanity
 @pytest.mark.parser
+def test_parse_if_expression():
+    input = "if (x < y) { x }"
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+
+    assert_node_type(program.statements[0], ast.IfExpression)
+    if_expr: ast.IfExpression = program.statements[0]
+
+    assert_node_type(if_expr.condition, ast.InfixExpression)
+    assert_infix_expression(if_expr.condition, "x", "<", "y")
+
+    assert_node_type(if_expr.consequence, ast.BlockStatement)
+    consequence: ast.BlockStatement = if_expr.consequence
+    assert len(consequence.statements) == 1
+
+    assert if_expr.alternative is None
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
+def test_parse_if_expression():
+    input = "if (x < y) { x } else { y }"
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+
+    assert_node_type(program.statements[0], ast.IfExpression)
+    if_expr: ast.IfExpression = program.statements[0]
+
+    assert_node_type(if_expr.condition, ast.InfixExpression)
+    assert_infix_expression(if_expr.condition, "x", "<", "y")
+
+    assert_node_type(if_expr.consequence, ast.BlockStatement)
+    consequence: ast.BlockStatement = if_expr.consequence
+    assert len(consequence.statements) == 1
+
+    assert_node_type(if_expr.alternative, ast.BlockStatement)
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_parse_call_expression_without_arguments():
     input = "add();"
 

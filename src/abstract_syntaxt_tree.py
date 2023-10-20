@@ -1,8 +1,8 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
-from lexer import Token, TokenType
+from lexer import Token
 
 
 class Node(ABC):
@@ -112,3 +112,17 @@ class CallExpression(Node):
 
     def __repr__(self):
         return f"{self.func}({', '.join([f'{arg}' for arg in self.arguments])})"
+
+
+@dataclass
+class IfExpression(Node):
+    token: Token
+    condition: Node
+    consequence: Node
+    alternative: Optional[Node] = None
+
+    def __repr__(self):
+        if self.alternative:
+            return f"if ({self.condition}) {self.consequence} else {self.alternative}"
+        else:
+            return f"if ({self.condition}) {self.consequence}"
