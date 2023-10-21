@@ -347,7 +347,7 @@ class Parser:
         if isinstance(expr_or_error, ParseError):
             return expr_or_error
 
-        self.read_semicolon_if_exits()
+        self.maybe_remove_reduntant_semicolon()
         return ast.ReturnStatement(cur_tok, expr_or_error)
 
     def parse_let_statement(self, depth: int) -> Union[ast.Node, ParseError]:
@@ -365,7 +365,7 @@ class Parser:
         if isinstance(expr_or_err, ParseError):
             return expr_or_err
 
-        self.read_semicolon_if_exits()
+        self.maybe_remove_reduntant_semicolon()
         return ast.LetStatement(cur_tok, ident, expr_or_err)
 
     def parse_expression(
@@ -404,7 +404,7 @@ class Parser:
         show_parse_info(depth, "IDENTIFIER", self.cur_token)
         return ast.Identifier(self.cur_token, self.cur_token.literal)
 
-    def read_semicolon_if_exits(self):
+    def maybe_remove_reduntant_semicolon(self):
         if self.peek_token.token_type == TokenType.Semicolon:
             self.next_token()
 
