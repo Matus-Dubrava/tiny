@@ -1,5 +1,4 @@
 import pytest
-
 from lexer import Lexer, Token, TokenType
 
 

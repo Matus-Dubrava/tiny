@@ -1,9 +1,9 @@
-from lexer import Token, Lexer, TokenType
-from typing import List, Union, Optional, Callable, Dict, Tuple
 from dataclasses import dataclass
 from enum import Enum, unique
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import abstract_syntaxt_tree as ast
+from lexer import Lexer, Token, TokenType
 
 DEBUG = True
 

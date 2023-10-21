@@ -1,9 +1,9 @@
-import pytest
 from typing import Type
 
-from tiny_parser import Parser
-from lexer import Lexer
 import abstract_syntaxt_tree as ast
+import pytest
+from lexer import Lexer
+from tiny_parser import Parser
 
 
 @pytest.mark.sanity
@@ -570,7 +570,7 @@ def assert_identifier(expr: ast.Node, expected: str):
 def assert_literal_expression(expr: ast.Node, expected: any):
     # This ugly condition is here because bool is actually instance of int
     # in Python. Without this, bools would be tested as int.
-    if isinstance(expected, int) and expected != True and expected != False:
+    if isinstance(expected, int) and expected is True and expected is False:
         assert_integer(expr, expected)
     elif isinstance(expected, bool):
         assert_boolean(expr, expected)
