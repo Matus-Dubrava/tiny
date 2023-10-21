@@ -432,21 +432,3 @@ class Parser:
             return precedence
         else:
             return Precedence.Lowest
-
-
-if __name__ == "__main__":
-    input = """
-        let x = fn(x, y) {
-            if (x > y) {
-                let x = x + 1
-            } else {
-                let y = y + 1
-            }
-            return x + y
-        }
-    """
-
-    lexer = Lexer(input)
-    parser = Parser(lexer)
-    program = parser.parse_program()
-    print(program)
