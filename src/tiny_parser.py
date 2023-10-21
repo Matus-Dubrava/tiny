@@ -1,5 +1,5 @@
 from lexer import Token, Lexer, TokenType
-from typing import List, Union, Optional, Callable, Dict
+from typing import List, Union, Optional, Callable, Dict, Tuple
 from dataclasses import dataclass
 from enum import Enum, unique
 
@@ -69,6 +69,7 @@ class Parser:
             TokenType.If: self.parse_if_expression,
             TokenType.LBracket: self.parse_array_literal,
             TokenType.String: self.parse_string_literal,
+            TokenType.LBrace: self.parse_hash_literal,
         }
 
         self.infix_parse_functions: Dict[TokenType, InfixParseFunction] = {
@@ -243,6 +244,40 @@ class Parser:
         show_parse_info(depth, "STRING LITERAL", self.cur_token)
         return ast.StringLiteral(self.cur_token, self.cur_token.literal)
 
+    def parse_hash_literal(self, depth: int) -> Union[ast.Node, ParseError]:
+        show_parse_info(depth, "HASH LITERAL", self.cur_token)
+        cur_token = self.cur_token
+        pairs: Dict[ast.Node, ast.Node] = {}
+
+        def _parse_pair() -> Union[Tuple[ast.Node, ast.Node], ParseError]:
+            left_or_err = self.parse_expression(Precedence.Lowest, depth + 1)
+            if isinstance(left_or_err, ParseError):
+                return left_or_err
+
+            self.expect_peek_and_advance(TokenType.Colon)
+            self.next_token()
+
+            right_or_err = self.parse_expression(Precedence.Lowest, depth + 1)
+            if isinstance(right_or_err, ParseError):
+                return right_or_err
+
+            self.next_token()
+            return (left_or_err, right_or_err)
+
+        while (
+            self.peek_token.token_type != TokenType.RBrace
+            and self.peek_token.token_type != TokenType.Eof
+        ):
+            self.next_token()
+            pair_or_err = _parse_pair()
+            if isinstance(pair_or_err, ParseError):
+                return pair_or_err
+
+            pairs[pair_or_err[0]] = pair_or_err[1]
+
+        self.next_token()
+        return ast.HashLiteral(cur_token, pairs)
+
     def parse_array_literal(self, depth: int) -> Union[ast.Node, ParseError]:
         show_parse_info(depth, "ARRAY LITERAL", self.cur_token)
         cur_token = self.cur_token
@@ -402,12 +437,3 @@ class Parser:
             return precedence
         else:
             return Precedence.Lowest
-
-
-if __name__ == "__main__":
-    input = "[1, 2 + 3]"
-    lexer = Lexer(input)
-    parser = Parser(lexer)
-    program = parser.parse_program()
-    print(program)
-    print(parser.errors)

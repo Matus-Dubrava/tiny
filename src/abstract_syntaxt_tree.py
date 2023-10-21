@@ -14,6 +14,12 @@ class IntegerLiteral(Node):
     token: Token
     value: int
 
+    def __hash__(self) -> int:
+        return self.value
+
+    def __eq__(self, other: "IntegerLiteral") -> bool:
+        return self.value == other.value
+
     def __repr__(self):
         return f"{self.value}"
 
@@ -22,6 +28,12 @@ class IntegerLiteral(Node):
 class BooleanLiteral(Node):
     token: Token
     value: bool
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+    def __eq__(self, other: "BooleanLiteral") -> bool:
+        return self.value == other.value
 
     def __repr__(self):
         return f"{self.value}"
@@ -163,6 +175,12 @@ class IndexExpression(Node):
 class StringLiteral(Node):
     token: Token
     value: str
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+    def __eq__(self, other: "StringLiteral") -> bool:
+        return self.value == other.value
 
     def __repr__(self):
         return f'"{self.value}"'
