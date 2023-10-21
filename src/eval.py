@@ -1,6 +1,6 @@
 import abstract_syntaxt_tree as ast
 import object as obj
-from environment import Environment
+from object import Environment
 from typing import Callable
 
 DEBUG = True
@@ -51,6 +51,8 @@ class Evaluator:
             return self.eval_let_statement(node, env, depth)
         if isinstance(node, ast.Identifier):
             return self.eval_identifier(node, env, depth)
+        if isinstance(node, ast.Function):
+            return self.eval_function_literal(node, env, depth)
 
     @debug("PROGRAM")
     def eval_program(self, program: ast.Program, env: Environment, depth: int):
@@ -102,6 +104,12 @@ class Evaluator:
             return res
 
         env.set(let_stmt.ident.name, res)
+
+    @debug("FUNCTION")
+    def eval_function_literal(
+        self, func: ast.Function, env: Environment, depth: int
+    ) -> obj.Object:
+        return obj.FunctionObject(func.paramters, func.body, env)
 
     @debug("IDENT")
     def eval_identifier(

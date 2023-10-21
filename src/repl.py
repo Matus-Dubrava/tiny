@@ -1,9 +1,9 @@
 import sys
 
-from environment import Environment
 from eval import Evaluator
 from lexer import Lexer
 from tiny_parser import Parser
+from object import Environment
 
 if __name__ == "__main__":
     env = Environment()

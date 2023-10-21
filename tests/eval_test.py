@@ -2,8 +2,8 @@ import pytest
 from eval import Evaluator
 from lexer import Lexer
 from tiny_parser import Parser
+from object import Environment
 import object as obj
-from environment import Environment
 
 
 @pytest.mark.sanity
@@ -151,6 +151,24 @@ def test_evaluate_let_statement():
     for test in tests:
         res = evaluate(test["input"])
         assert_integer(res, test["expected"])
+
+
+@pytest.mark.sanity
+@pytest.mark.eval
+def test_evaluate_function_expression():
+    input = "fn(x) { x + 2 }"
+
+    res = evaluate(input)
+    assert isinstance(
+        res, obj.FunctionObject
+    ), f"expected 'FunctionObject', got '{res.__class__.__name__}'"
+    assert len(res.arguments) == 1, f"expected '1' argument, got '{len(res.arguments)}'"
+    assert (
+        res.arguments[0].name == "x"
+    ), f"expected arument 'x', got '{res.arguments[0].name}'"
+    assert (
+        f"{res.body.statements[0]}" == "(x + 2)"
+    ), f"expected body '(x + 2)', got '{res.body.statements[0]}'"
 
 
 @pytest.mark.sanity
