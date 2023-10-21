@@ -43,6 +43,8 @@ class Evaluator:
         show_eval_info(depth, "EVAL PREFIX", prefix_expr)
 
         left = self.eval(prefix_expr.expr, env, depth + 1)
+        if isinstance(left, obj.ErrorObject):
+            return left
 
         if prefix_expr.operator == "-":
             if isinstance(left, obj.IntegerObject):
@@ -70,7 +72,11 @@ class Evaluator:
         show_eval_info(depth, "EVAL INFIX", infix_expr)
 
         left = self.eval(infix_expr.left_expr, env, depth + 1)
+        if isinstance(left, obj.ErrorObject):
+            return left
         right = self.eval(infix_expr.right_expr, env, depth + 1)
+        if isinstance(right, obj.ErrorObject):
+            return right
 
         if left.__class__.__name__ != right.__class__.__name__:
             return obj.ErrorObject(
