@@ -47,6 +47,10 @@ class Evaluator:
             return self.eval_block_statement(node, env, depth)
         if isinstance(node, ast.ReturnStatement):
             return self.eval_return_statement(node, env, depth)
+        if isinstance(node, ast.LetStatement):
+            return self.eval_let_statement(node, env, depth)
+        if isinstance(node, ast.Identifier):
+            return self.eval_identifier(node, env, depth)
 
     @debug("PROGRAM")
     def eval_program(self, program: ast.Program, env: Environment, depth: int):
@@ -88,6 +92,22 @@ class Evaluator:
             return res
 
         return obj.ReturnObject(res)
+
+    @debug("LET")
+    def eval_let_statement(
+        self, let_stmt: ast.LetStatement, env: Environment, depth: int
+    ) -> obj.Object:
+        res = self.eval(let_stmt.expr, env, depth + 1)
+        if isinstance(res, obj.ErrorObject):
+            return res
+
+        env.set(let_stmt.ident.name, res)
+
+    @debug("IDENT")
+    def eval_identifier(
+        self, ident: ast.Identifier, env: Environment, depth: int
+    ) -> obj.Object:
+        return env.get(ident.name)
 
     @debug("IF EXPR")
     def eval_if_expression(

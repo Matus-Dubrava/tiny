@@ -140,6 +140,21 @@ def test_evaluate_return_statement():
 
 @pytest.mark.sanity
 @pytest.mark.eval
+def test_evaluate_let_statement():
+    tests = [
+        {"input": "let a = 5; a;", "expected": 5},
+        {"input": "let a = 5 * 5; a;", "expected": 25},
+        {"input": "let a = 5; let b = a; b;", "expected": 5},
+        {"input": "let a = 5; let b = a; let c = a + b + 5; c;", "expected": 15},
+    ]
+
+    for test in tests:
+        res = evaluate(test["input"])
+        assert_integer(res, test["expected"])
+
+
+@pytest.mark.sanity
+@pytest.mark.eval
 def test_evaluate_prefix_expression():
     tests = [
         {"input": "!true", "expected": False},
