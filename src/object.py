@@ -12,7 +12,7 @@ class IntegerObject(Object):
     value: int
 
     def __repr__(self):
-        return self.value
+        return f"{self.value}"
 
     def __hash__(self):
         return self.value
