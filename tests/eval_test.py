@@ -31,6 +31,24 @@ def test_eval_string_literal():
     assert_string(res, "Hello World")
 
 
+@pytest.mark.sanity
+@pytest.mark.eval
+def test_evaluate_prefix_expression():
+    tests = [
+        {"input": "!true", "expected": False},
+        {"input": "!false", "expected": True},
+        {"input": "!5", "expected": False},
+        {"input": "!!true", "expected": True},
+        {"input": "!!false", "expected": False},
+        {"input": "!!5", "expected": True},
+    ]
+
+    for test in tests:
+        res = evaluate(test["input"])
+        print(f"{test['input']}, {res}")
+        assert_boolean(res, test["expected"])
+
+
 def evaluate(input: str) -> obj.Object:
     evaluator = Evaluator()
     env = Environment()
