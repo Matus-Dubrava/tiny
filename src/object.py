@@ -17,7 +17,7 @@ class IntegerObject(Object):
     def __hash__(self):
         return self.value
 
-    def __eq__(self, other: "Object"):
+    def __eq__(self, other):
         return self.value == other.value
 
     def is_hashable(self) -> bool:
@@ -34,7 +34,7 @@ class StringObject(Object):
     def __hash__(self):
         return hash(self.value)
 
-    def __eq__(self, other: "Object"):
+    def __eq__(self, other):
         return self.value == other.value
 
     def is_hashable(self) -> bool:
@@ -51,7 +51,7 @@ class BooleanObject(Object):
     def __hash__(self):
         return hash(self.value)
 
-    def __eq__(self, other: "Object"):
+    def __eq__(self, other):
         return self.value == other.value
 
     def is_hashable(self) -> bool:
@@ -63,7 +63,7 @@ class NullObject(Object):
     def __repr__(self):
         return "null"
 
-    def __eq__(self, other: "NullObject"):
+    def __eq__(self, other):
         return True
 
     def is_hashable(self) -> bool:
@@ -77,7 +77,21 @@ class ErrorObject(Object):
     def __repr__(self):
         return f"ERROR: {self.value}"
 
-    def __eq__(self, other: "ErrorObject"):
+    def __eq__(self, other):
+        return self.value == other.value
+
+    def is_hashable(self) -> bool:
+        return False
+
+
+@dataclass
+class ReturnObject(Object):
+    value: Object
+
+    def __repr__(self):
+        return f"return {self.value}"
+
+    def __eq__(self, other):
         return self.value == other.value
 
     def is_hashable(self) -> bool:

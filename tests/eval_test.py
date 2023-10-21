@@ -101,6 +101,45 @@ def test_evaluate_boolean_expression():
 
 @pytest.mark.sanity
 @pytest.mark.eval
+def test_evaluate_return_statement():
+    tests = [
+        {"input": "return 10;", "expected": 10},
+        {"input": "return 10; 9;", "expected": 10},
+        {"input": "return 2 * 5; 9;", "expected": 10},
+        {"input": "9; return 2 * 5; 9;", "expected": 10},
+        {
+            "input": """ 
+                if (10 > 1) {
+                    if (10 > 1) {
+                        return 10;
+                    }
+                    129
+                    return 1;
+                }""",
+            "expected": 10,
+        },
+        {
+            "input": """
+                if (10 > 1) {
+                    if (10 > 1) {
+                        if (10 > 1) {
+                            return 10;
+                        }
+                    }
+                    129
+                    return 1;
+                }""",
+            "expected": 10,
+        },
+    ]
+
+    for test in tests:
+        res = evaluate(test["input"])
+        assert_integer(res, test["expected"])
+
+
+@pytest.mark.sanity
+@pytest.mark.eval
 def test_evaluate_prefix_expression():
     tests = [
         {"input": "!true", "expected": False},
