@@ -13,15 +13,17 @@ def show_eval_info(depth: int, eval_name: str, node: ast.Node) -> None:
 class Evaluator:
     def eval(self, node: ast.Node, env: Environment, depth: int = 0) -> obj.Object:
         if isinstance(node, ast.Program):
-            return self.eval_program(node, env, depth + 1)
+            return self.eval_program(node, env, depth)
         if isinstance(node, ast.IntegerLiteral):
-            return self.eval_integer_literal(node, env, depth + 1)
+            return self.eval_integer_literal(node, env, depth)
         if isinstance(node, ast.BooleanLiteral):
-            return self.eval_boolean_literal(node, env, depth + 1)
+            return self.eval_boolean_literal(node, env, depth)
         if isinstance(node, ast.StringLiteral):
-            return self.eval_string_literal(node, env, depth + 1)
+            return self.eval_string_literal(node, env, depth)
         if isinstance(node, ast.PrefixExpression):
-            return self.eval_prefix_expression(node, env, depth + 1)
+            return self.eval_prefix_expression(node, env, depth)
+        if isinstance(node, ast.InfixExpression):
+            return self.eval_infix_expression(node, env, depth)
 
     def eval_program(self, program: ast.Program, env: Environment, depth: int):
         show_eval_info(depth, "EVAL PROGRAM", program)
@@ -38,13 +40,13 @@ class Evaluator:
     def eval_prefix_expression(
         self, prefix_expr: ast.PrefixExpression, env: Environment, depth: int
     ) -> obj.Object:
-        show_eval_info(depth, "EVAL INFIX", prefix_expr)
+        show_eval_info(depth, "EVAL PREFIX", prefix_expr)
 
         left = self.eval(prefix_expr.expr, env, depth + 1)
 
         if prefix_expr.operator == "-":
             if isinstance(left, obj.IntegerObject):
-                return obj.IntegerObject(-left)
+                return obj.IntegerObject(-left.value)
             else:
                 return obj.ErrorObject(
                     f"unrecognized operator '-', got '{left.__class__.__name__}'"
@@ -61,6 +63,86 @@ class Evaluator:
             return obj.ErrorObject(
                 f"unrecognized operator '-', got '{left.__class__.__name__}'"
             )
+
+    def eval_infix_expression(
+        self, infix_expr: ast.InfixExpression, env: Environment, depth: int
+    ) -> obj.Object:
+        show_eval_info(depth, "EVAL INFIX", infix_expr)
+
+        left = self.eval(infix_expr.left_expr, env, depth + 1)
+        right = self.eval(infix_expr.right_expr, env, depth + 1)
+
+        if left.__class__.__name__ != right.__class__.__name__:
+            return obj.ErrorObject(
+                f"type mismatch, got '{left.__class__.__name__}' and '{right.__class__.__name__}'"
+            )
+
+        if infix_expr.operator == "+":
+            if isinstance(left, obj.IntegerObject):
+                return obj.IntegerObject(left.value + right.value)
+            elif isinstance(left, obj.StringObject):
+                return obj.StringObject(left.value + right.value)
+            else:
+                return obj.ErrorObject(
+                    f"unrecognized operator '-', got '{left.__class__.__name__}' and '{right.__class__.__name__}'"
+                )
+        elif infix_expr.operator == "-":
+            if isinstance(left, obj.IntegerObject):
+                return obj.IntegerObject(left.value - right.value)
+            else:
+                return obj.ErrorObject(
+                    f"unrecognized operator '-', got '{left.__class__.__name__}' and '{right.__class__.__name__}'"
+                )
+        elif infix_expr.operator == "/":
+            if isinstance(left, obj.IntegerObject):
+                return obj.IntegerObject(left.value / right.value)
+            else:
+                return obj.ErrorObject(
+                    f"unrecognized operator '/', got '{left.__class__.__name__}' and '{right.__class__.__name__}'"
+                )
+        elif infix_expr.operator == "*":
+            if isinstance(left, obj.IntegerObject):
+                return obj.IntegerObject(left.value * right.value)
+            else:
+                return obj.ErrorObject(
+                    f"unrecognized operator '*', got '{left.__class__.__name__}' and '{right.__class__.__name__}'"
+                )
+        elif infix_expr.operator == "==":
+            if (
+                isinstance(left, obj.IntegerObject)
+                or isinstance(left, obj.BooleanObject)
+                or isinstance(left, obj.StringObject)
+            ):
+                return obj.BooleanObject(left.value == right.value)
+            else:
+                return obj.ErrorObject(
+                    f"unrecognized operator '==', got '{left.__class__.__name__}' and '{right.__class__.__name__}'"
+                )
+        elif infix_expr.operator == "!=":
+            if (
+                isinstance(left, obj.IntegerObject)
+                or isinstance(left, obj.BooleanObject)
+                or isinstance(left, obj.StringObject)
+            ):
+                return obj.BooleanObject(left.value != right.value)
+            else:
+                return obj.ErrorObject(
+                    f"unrecognized operator '!=', got '{left.__class__.__name__}' and '{right.__class__.__name__}'"
+                )
+        elif infix_expr.operator == "<":
+            if isinstance(left, obj.IntegerObject):
+                return obj.BooleanObject(left.value < right.value)
+            else:
+                return obj.ErrorObject(
+                    f"unrecognized operator '<', got '{left.__class__.__name__}' and '{right.__class__.__name__}'"
+                )
+        elif infix_expr.operator == ">":
+            if isinstance(left, obj.IntegerObject):
+                return obj.BooleanObject(left.value > right.value)
+            else:
+                return obj.ErrorObject(
+                    f"unrecognized operator '>', got '{left.__class__.__name__}' and '{right.__class__.__name__}'"
+                )
 
     def eval_integer_literal(
         self, node: ast.IntegerLiteral, env: Environment, depth: int
