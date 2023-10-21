@@ -24,6 +24,27 @@ def test_evaluate_string_concatenation():
 
 @pytest.mark.sanity
 @pytest.mark.eval
+def test_evaluate_if_else_expression():
+    tests = [
+        {"input": "if (true) { 10 }", "expected": 10},
+        {"input": "if (false) { 10 }", "expected": None},
+        {"input": "if (1) { 10 }", "expected": 10},
+        {"input": "if (1 < 2) { 10 }", "expected": 10},
+        {"input": "if (1 > 2) { 10 }", "expected": None},
+        {"input": "if (1 > 2) { 10 } else { 20 }", "expected": 20},
+        {"input": "if (1 < 2) { 10 } else { 20 }", "expected": 10},
+    ]
+
+    for test in tests:
+        res = evaluate(test["input"])
+        if test["expected"] is None:
+            assert res == obj.NULL
+        else:
+            assert_integer(res, test["expected"])
+
+
+@pytest.mark.sanity
+@pytest.mark.eval
 def test_evaluate_integer_expression():
     tests = [
         {"input": "5", "expected": 5},

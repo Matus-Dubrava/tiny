@@ -24,6 +24,10 @@ class Evaluator:
             return self.eval_prefix_expression(node, env, depth)
         if isinstance(node, ast.InfixExpression):
             return self.eval_infix_expression(node, env, depth)
+        if isinstance(node, ast.IfExpression):
+            return self.eval_if_expression(node, env, depth)
+        if isinstance(node, ast.BlockStatement):
+            return self.eval_block_statement(node, env, depth)
 
     def eval_program(self, program: ast.Program, env: Environment, depth: int):
         show_eval_info(depth, "EVAL PROGRAM", program)
@@ -36,6 +40,36 @@ class Evaluator:
                 return res_or_err
 
         return res_or_err
+
+    def eval_block_statement(
+        self, block: ast.BlockStatement, env: Environment, depth: int
+    ) -> obj.Object:
+        show_eval_info(depth, "EVAL BLOCK STMT", block)
+
+        res_or_err: obj.Object = obj.NULL
+
+        for stmt in block.statements:
+            res_or_err = self.eval(stmt, env, depth)
+            if isinstance(res_or_err, obj.ErrorObject):
+                return res_or_err
+
+        return res_or_err
+
+    def eval_if_expression(
+        self, if_expr: ast.IfExpression, env: Environment, depth: int
+    ) -> obj.Object:
+        show_eval_info(depth, "EVAL IF", if_expr)
+
+        cond = self.eval(if_expr.condition, env, depth + 1)
+        if isinstance(cond, obj.ErrorObject):
+            return cond
+
+        if Evaluator.is_truthy(cond):
+            return self.eval(if_expr.consequence, env, depth + 1)
+        elif if_expr.alternative is not None:
+            return self.eval(if_expr.alternative, env, depth + 1)
+        else:
+            return obj.NULL
 
     def eval_prefix_expression(
         self, prefix_expr: ast.PrefixExpression, env: Environment, depth: int
@@ -167,3 +201,12 @@ class Evaluator:
     ) -> obj.Object:
         show_eval_info(depth, "EVAL STRING", node)
         return obj.StringObject(node.value)
+
+    @staticmethod
+    def is_truthy(object: obj.Object):
+        if isinstance(object, obj.BooleanObject) and object.value is True:
+            return True
+        elif isinstance(object, obj.IntegerObject) and object.value != 0:
+            return True
+        else:
+            return False
