@@ -233,7 +233,6 @@ class Parser:
             if isinstance(alternative_or_err, ParseError):
                 return alternative_or_err
 
-            self.next_token()
             return ast.IfExpression(
                 cur_token, condition_or_err, consequence_or_err, alternative_or_err
             )
@@ -333,7 +332,6 @@ class Parser:
         self.next_token()
 
         right_expr_or_error = self.parse_expression(cur_precedence, depth + 1)
-        print(right_expr_or_error)
         if isinstance(right_expr_or_error, ParseError):
             return right_expr_or_error
 
@@ -349,7 +347,7 @@ class Parser:
         if isinstance(expr_or_error, ParseError):
             return expr_or_error
 
-        self.read_until_semicolon()
+        self.read_semicolon_if_exits()
         return ast.ReturnStatement(cur_tok, expr_or_error)
 
     def parse_let_statement(self, depth: int) -> Union[ast.Node, ParseError]:
@@ -367,7 +365,7 @@ class Parser:
         if isinstance(expr_or_err, ParseError):
             return expr_or_err
 
-        self.read_until_semicolon()
+        self.read_semicolon_if_exits()
         return ast.LetStatement(cur_tok, ident, expr_or_err)
 
     def parse_expression(
@@ -406,11 +404,8 @@ class Parser:
         show_parse_info(depth, "IDENTIFIER", self.cur_token)
         return ast.Identifier(self.cur_token, self.cur_token.literal)
 
-    def read_until_semicolon(self) -> None:
-        while (
-            self.cur_token.token_type != TokenType.Semicolon
-            and self.cur_token.token_type != TokenType.Eof
-        ):
+    def read_semicolon_if_exits(self):
+        if self.peek_token.token_type == TokenType.Semicolon:
             self.next_token()
 
     def expect_peek_and_advance(self, token_type: TokenType) -> Optional[ParseError]:
@@ -437,3 +432,21 @@ class Parser:
             return precedence
         else:
             return Precedence.Lowest
+
+
+if __name__ == "__main__":
+    input = """
+        let x = fn(x, y) {
+            if (x > y) {
+                let x = x + 1
+            } else {
+                let y = y + 1
+            }
+            return x + y
+        }
+    """
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    print(program)

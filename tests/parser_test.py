@@ -337,6 +337,37 @@ def test_parse_function_literal():
 
 @pytest.mark.sanity
 @pytest.mark.parser
+def test_parse_function_literal_with_if_expression():
+    input = """
+        fn(x) {
+            if (x > 2) {
+                x
+            } else {
+                x + 2
+            }
+            return x
+        } 
+    """
+
+    lexer = Lexer(input)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    assert_no_parse_errors(parser)
+    assert_program_length(program, 1)
+
+    assert isinstance(program.statements[0], ast.Function)
+    fn = program.statements[0]
+    assert len(fn.paramters) == 1, f"expect '1' parameters, got '{len(fn.parameters)}'"
+    assert_identifier(fn.paramters[0], "x")
+
+    assert len(fn.body.statements) == 2, f"expected '2' statement, got '{len(fn.body)}'"
+    assert_node_type(fn.body.statements[0], ast.IfExpression)
+    assert_node_type(fn.body.statements[1], ast.ReturnStatement)
+    assert_identifier(fn.body.statements[1].expr, "x")
+
+
+@pytest.mark.sanity
+@pytest.mark.parser
 def test_parse_infix_expression():
     tests = [
         {
@@ -514,7 +545,7 @@ def assert_program_length(program: ast.Program, expected_length: int):
 def assert_node_type(node: ast.Node, node_class: Type[ast.Node]):
     assert isinstance(
         node, node_class
-    ), f"expected '{node.__class__.__name__}', got '{node_class.__name__}'"
+    ), f"expected '{node_class.__name__}', got '{node.__class__.__name__}'"
 
 
 def assert_integer(node: ast.Node, expected: int):
