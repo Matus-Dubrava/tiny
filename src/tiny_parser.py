@@ -317,11 +317,11 @@ class Parser:
         cur_tok = self.cur_token
 
         self.next_token()
-        expr_or_error = self.parse_expression(Precedence.Prefix, depth + 1)
-        if isinstance(expr_or_error, ParseError):
-            return expr_or_error
+        expr_or_err = self.parse_expression(Precedence.Prefix, depth + 1)
+        if isinstance(expr_or_err, ParseError):
+            return expr_or_err
 
-        return ast.PrefixExpression(cur_tok, cur_tok.token_type.value, expr_or_error)
+        return ast.PrefixExpression(cur_tok, cur_tok.token_type.value, expr_or_err)
 
     def parse_infix_expression(
         self, left_expr: ast.Node, depth: int
@@ -331,24 +331,24 @@ class Parser:
         cur_precedence = self.get_current_precendence()
         self.next_token()
 
-        right_expr_or_error = self.parse_expression(cur_precedence, depth + 1)
-        if isinstance(right_expr_or_error, ParseError):
-            return right_expr_or_error
+        right_expr_or_err = self.parse_expression(cur_precedence, depth + 1)
+        if isinstance(right_expr_or_err, ParseError):
+            return right_expr_or_err
 
         return ast.InfixExpression(
-            cur_token, left_expr, cur_token.token_type.value, right_expr_or_error
+            cur_token, left_expr, cur_token.token_type.value, right_expr_or_err
         )
 
     def parse_return_statement(self, depth: int) -> Union[ast.Node, ParseError]:
         show_parse_info(depth, "RETURN STMT", self.cur_token)
         cur_tok = self.cur_token
         self.next_token()
-        expr_or_error = self.parse_expression(Precedence.Lowest, depth + 1)
-        if isinstance(expr_or_error, ParseError):
-            return expr_or_error
+        expr_or_err = self.parse_expression(Precedence.Lowest, depth + 1)
+        if isinstance(expr_or_err, ParseError):
+            return expr_or_err
 
         self.maybe_remove_reduntant_semicolon()
-        return ast.ReturnStatement(cur_tok, expr_or_error)
+        return ast.ReturnStatement(cur_tok, expr_or_err)
 
     def parse_let_statement(self, depth: int) -> Union[ast.Node, ParseError]:
         show_parse_info(depth, "LET STMT", self.cur_token)
